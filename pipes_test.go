@@ -8,9 +8,9 @@ import (
 )
 
 func TestCreatePipeline(t *testing.T) {
-	pipeline := createPipeline()
-	pipeline1 := pipeline.Use(pipelineA)
-	pipeline2 := pipeline1.Use(pipelineB)
+	pipeline := NewPipeline()
+	pipeline1 := pipeline.Use(middlewareA)
+	pipeline2 := pipeline1.Use(middlewareB)
 
 	if len(pipeline.middlewares) != 0 {
 		t.Fatal("Expected 0 middleware")
@@ -24,7 +24,7 @@ func TestCreatePipeline(t *testing.T) {
 }
 
 func TestEmptyPipeline(t *testing.T) {
-	pipeline := createPipeline()
+	pipeline := NewPipeline()
 
 	// Request
 	req, err := http.NewRequest("GET", "/test", nil)
@@ -39,7 +39,7 @@ func TestEmptyPipeline(t *testing.T) {
 }
 
 func TestPipelineNext(t *testing.T) {
-	pipeline := createPipeline().Use(pipelineA).Use(pipelineB)
+	pipeline := NewPipeline().Use(middlewareA).Use(middlewareB)
 
 	// Request
 	req, err := http.NewRequest("GET", "/test", nil)
@@ -59,10 +59,10 @@ func TestPipelineNext(t *testing.T) {
 }
 
 func TestPipelineWithContext(t *testing.T) {
-	pipeline := createPipeline().
-		Use(pipelineSetContext).
+	pipeline := NewPipeline().
+		Use(setContextMiddleware).
 		Use(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next Next) {
-			if ctx.Value(pipelineID) != "1" {
+			if ctx.Value(middlewareID) != "1" {
 				t.Fatalf("Pass context. Expected: %v, Acutal: %v", "1", ctx.Value("pipeline"))
 			}
 			next(ctx)
@@ -78,30 +78,33 @@ func TestPipelineWithContext(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(pipeline.Run())
 	handler.ServeHTTP(recorder, req)
+
+	expectedKeyString := "Pipes. Context key: pipeline"
+	if middlewareID.String() != expectedKeyString {
+		t.Fatalf("Expected: %v, Actual: %v", expectedKeyString, middlewareID.String())
+	}
 }
 
-func createPipeline() Pipeline {
-	return NewPipeline(func(w http.ResponseWriter, r *http.Request) context.Context {
-		return context.TODO()
-	})
+func defaultContextMiddleware(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
+	next(context.TODO())
 }
 
-func pipelineA(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
+func middlewareA(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
 	w.Header().Set("pipeline", "A")
 
 	next(ctx)
 }
 
-func pipelineB(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
+func middlewareB(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
 	w.Header().Set("pipeline", "B")
 
 	next(ctx)
 }
 
-const pipelineID ContextKey = "pipeline"
+const middlewareID ContextKey = "pipeline"
 
-func pipelineSetContext(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
-	ctx = context.WithValue(ctx, pipelineID, "1")
+func setContextMiddleware(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
+	ctx = context.WithValue(ctx, middlewareID, "1")
 
 	next(ctx)
 }

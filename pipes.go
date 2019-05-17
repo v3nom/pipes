@@ -8,9 +8,6 @@ import (
 // Middleware function.
 type Middleware = func(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context))
 
-// ContextConstructor context constructor function.
-type ContextConstructor = func(w http.ResponseWriter, r *http.Request) context.Context
-
 // Next next middleware function.
 type Next = func(context.Context)
 
@@ -22,18 +19,16 @@ func (p ContextKey) String() string {
 }
 
 // NewPipeline creates new empty pipeline.
-func NewPipeline(contextConstructor ContextConstructor) Pipeline {
+func NewPipeline() Pipeline {
 	p := Pipeline{
-		middlewares:        []Middleware{},
-		contextConstructor: contextConstructor,
+		middlewares: []Middleware{},
 	}
 	return p
 }
 
 // Pipeline instance.
 type Pipeline struct {
-	middlewares        []Middleware
-	contextConstructor ContextConstructor
+	middlewares []Middleware
 }
 
 // Run returns a function which can run the pipeline.
@@ -45,7 +40,6 @@ func (p Pipeline) Run() func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ctx := p.contextConstructor(w, r)
 		i := -1
 
 		next = func(ctx context.Context) {
@@ -54,14 +48,13 @@ func (p Pipeline) Run() func(w http.ResponseWriter, r *http.Request) {
 				p.middlewares[i](ctx, w, r, next)
 			}
 		}
-		next(ctx)
+		next(nil)
 	}
 }
 
 // Use adds a new middleware to the pipeline and returns a new pipeline.
 func (p Pipeline) Use(m Middleware) Pipeline {
 	return Pipeline{
-		middlewares:        append(p.middlewares, m),
-		contextConstructor: p.contextConstructor,
+		middlewares: append(p.middlewares, m),
 	}
 }
