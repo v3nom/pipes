@@ -58,6 +58,28 @@ func TestPipelineNext(t *testing.T) {
 	}
 }
 
+func TestPipelineWithContext(t *testing.T) {
+	pipeline := createPipeline().
+		Use(pipelineSetContext).
+		Use(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next Next) {
+			if ctx.Value(pipelineID) != "1" {
+				t.Fatalf("Pass context. Expected: %v, Acutal: %v", "1", ctx.Value("pipeline"))
+			}
+			next(ctx)
+		})
+
+	// Request
+	req, err := http.NewRequest("GET", "/test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Request handling
+	recorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(pipeline.Run())
+	handler.ServeHTTP(recorder, req)
+}
+
 func createPipeline() Pipeline {
 	return NewPipeline(func(w http.ResponseWriter, r *http.Request) context.Context {
 		return context.TODO()
@@ -72,6 +94,14 @@ func pipelineA(ctx context.Context, w http.ResponseWriter, r *http.Request, next
 
 func pipelineB(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
 	w.Header().Set("pipeline", "B")
+
+	next(ctx)
+}
+
+const pipelineID ContextKey = "pipeline"
+
+func pipelineSetContext(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
+	ctx = context.WithValue(ctx, pipelineID, "1")
 
 	next(ctx)
 }

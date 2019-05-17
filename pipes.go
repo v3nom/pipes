@@ -11,6 +11,16 @@ type Middleware = func(ctx context.Context, w http.ResponseWriter, r *http.Reque
 // ContextConstructor context constructor function.
 type ContextConstructor = func(w http.ResponseWriter, r *http.Request) context.Context
 
+// Next next middleware function.
+type Next = func(context.Context)
+
+// ContextKey pipes context key type.
+type ContextKey string
+
+func (p ContextKey) String() string {
+	return "Pipes. Context key: " + string(p)
+}
+
 // NewPipeline creates new empty pipeline.
 func NewPipeline(contextConstructor ContextConstructor) Pipeline {
 	p := Pipeline{
@@ -28,7 +38,7 @@ type Pipeline struct {
 
 // Run returns a function which can run the pipeline.
 func (p Pipeline) Run() func(w http.ResponseWriter, r *http.Request) {
-	var next func(ctx context.Context)
+	var next Next
 	return func(w http.ResponseWriter, r *http.Request) {
 		middlewareCount := len(p.middlewares)
 		if middlewareCount == 0 {
