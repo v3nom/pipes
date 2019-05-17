@@ -2,7 +2,6 @@ package pipes
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,14 +65,12 @@ func createPipeline() Pipeline {
 }
 
 func pipelineA(ctx context.Context, w http.ResponseWriter, r *http.Request, next func()) {
-	log.Println("PipelineA")
 	w.Header().Set("pipeline", "A")
 
 	next()
 }
 
 func pipelineB(ctx context.Context, w http.ResponseWriter, r *http.Request, next func()) {
-	log.Println("PipelineB")
 	w.Header().Set("pipeline", "B")
 
 	next()
