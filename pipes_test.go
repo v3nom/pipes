@@ -64,14 +64,14 @@ func createPipeline() Pipeline {
 	})
 }
 
-func pipelineA(ctx context.Context, w http.ResponseWriter, r *http.Request, next func()) {
+func pipelineA(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
 	w.Header().Set("pipeline", "A")
 
-	next()
+	next(ctx)
 }
 
-func pipelineB(ctx context.Context, w http.ResponseWriter, r *http.Request, next func()) {
+func pipelineB(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context)) {
 	w.Header().Set("pipeline", "B")
 
-	next()
+	next(ctx)
 }

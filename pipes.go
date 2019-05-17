@@ -6,7 +6,7 @@ import (
 )
 
 // Middleware function.
-type Middleware = func(ctx context.Context, w http.ResponseWriter, r *http.Request, next func())
+type Middleware = func(ctx context.Context, w http.ResponseWriter, r *http.Request, next func(ctx context.Context))
 
 // ContextConstructor context constructor function.
 type ContextConstructor = func(w http.ResponseWriter, r *http.Request) context.Context
@@ -28,7 +28,7 @@ type Pipeline struct {
 
 // Run returns a function which can run the pipeline.
 func (p Pipeline) Run() func(w http.ResponseWriter, r *http.Request) {
-	var next func()
+	var next func(ctx context.Context)
 	return func(w http.ResponseWriter, r *http.Request) {
 		middlewareCount := len(p.middlewares)
 		if middlewareCount == 0 {
@@ -38,13 +38,13 @@ func (p Pipeline) Run() func(w http.ResponseWriter, r *http.Request) {
 		ctx := p.contextConstructor(w, r)
 		i := -1
 
-		next = func() {
+		next = func(ctx context.Context) {
 			i++
 			if i <= middlewareCount-1 {
 				p.middlewares[i](ctx, w, r, next)
 			}
 		}
-		next()
+		next(ctx)
 	}
 }
 
